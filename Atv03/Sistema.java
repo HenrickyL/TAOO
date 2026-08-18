@@ -3,16 +3,22 @@ import java.util.Scanner;
 
 public class Sistema {
     static class Cliente{
-        private boolean isPremium = false;
+        private boolean premium = false;
         public Cliente(String tipoCliente){
-            this.isPremium = tipoCliente.equals("PREMIUM"); 
+            this.premium = tipoCliente.equals("PREMIUM"); 
         }
 
-        public boolean getIsPremium(){
-            return this.isPremium;
+        public boolean getPremium(){
+            return this.premium;
+        }
+        public double calcularDesconto(double valor){
+            if(!this.premium){
+                return 0.0;
+            }
+            return valor * 0.10;
         }
     }
-    static class Entrega{
+    static abstract class Entrega{
         private String nome = "RETIRADA";
         private double valor =  0.0;
         public Entrega(String nome, double valor){
@@ -29,11 +35,24 @@ public class Sistema {
         public double getValor() {
             return valor;
         }
-    }
 
+        public double calcularFrete(double valorRestante){
+            return this.valor;
+        }
+    }
+    static class EntregaRetirada extends Entrega {
+        public EntregaRetirada(){
+            super("RETIRADA", 0.0);
+        }
+    }
     static class EntregaNormal extends Entrega{
         public EntregaNormal(){
             super("NORMAL", 12.0);
+        }
+
+        @Override
+        public double calcularFrete(double valorRestante) {
+            return valorRestante >= 150.0 ? 0 : this.getValor();
         }
     }
 
@@ -77,8 +96,8 @@ public class Sistema {
             return this.preco * this.quantidade;
         }
 
-        public double calcularDesconto(double valor){
-            return valor * this.porcentagemDesconto;
+        public double calcularDesconto(){
+            return this.calcularSubtotal() * this.porcentagemDesconto;
         }
     }
 
@@ -93,6 +112,25 @@ public class Sistema {
         }
     }
 
+    static class ResultadoPedido{
+        private double subtotal;
+        private double desconto;
+        private double frete;
+        private double total;
+
+        public ResultadoPedido(double subtotal, double desconto, double frete, double total){
+            this.subtotal = subtotal;
+            this.desconto = desconto;
+            this.frete = frete;
+            this.total = total;
+        }
+        public void imprimirResultado(){
+            System.out.printf("SUBTOTAL=%.2f%n", subtotal);
+            System.out.printf("DESCONTO=%.2f%n", desconto);
+            System.out.printf("FRETE=%.2f%n", frete);
+            System.out.printf("TOTAL=%.2f%n", total);
+        }
+    }
     static class Pedido {
         private  Cliente cliente;
         private Entrega entrega;
@@ -107,34 +145,24 @@ public class Sistema {
             this.items.add(item);
         }
 
-        public void x() {
+        public ResultadoPedido calcularResultado() {
             double subtotal = 0.0;
             double desconto = 0.0;
 
             for (Item item : items) {
-                double valor =  item.calcularSubtotal();
-                subtotal += valor;
-                desconto += item.calcularDesconto(valor);
+                subtotal += item.calcularSubtotal();
+                desconto += item.calcularDesconto();
             }
 
             double valor = subtotal - desconto;
+            double descontoPremium = cliente.calcularDesconto(valor);
+            desconto += descontoPremium;
+            valor -= descontoPremium;
 
-            if(cliente.getIsPremium()){
-                double z = valor * 0.10;
-                desconto = desconto + z;
-                valor = valor - z;
-            }
-
-            double frete = 0.0;
-
-            frete =  valor>=150.0 ? entrega.getValor() : 0;
-
+            double frete = entrega.calcularFrete(valor);
             double total = valor + frete;
 
-            System.out.printf("SUBTOTAL=%.2f%n", subtotal);
-            System.out.printf("DESCONTO=%.2f%n", desconto);
-            System.out.printf("FRETE=%.2f%n", frete);
-            System.out.printf("TOTAL=%.2f%n", total);
+            return new ResultadoPedido(subtotal, desconto, frete, total);
         }
     }
 
@@ -147,18 +175,18 @@ public class Sistema {
         //modalidade 
         String modalidadeEntrega = sc.nextLine().trim();
         Entrega entrega;
-        if (modalidadeEntrega.equals("RETIRADA")) {
-            entrega = new Entrega(modalidadeEntrega);
-        } else if (modalidadeEntrega.equals("NORMAL")) {
+        if (modalidadeEntrega.equals("NORMAL")) {
             entrega = new EntregaNormal();
         } else if (modalidadeEntrega.equals("EXPRESSA")) {
             entrega = new EntregaExpressa();
+        }else{
+            entrega = new EntregaRetirada();
         }
         Pedido pedido = new Pedido(cliente, entrega);
 
         int n = Integer.parseInt(sc.nextLine().trim());
 
-        for (int k = 0; k < n; k++) {
+        for (int i = 0; i < n; i++) {
             String[] x = sc.nextLine().trim().split("\\s+");
 
 
@@ -167,11 +195,11 @@ public class Sistema {
             int qtd = Integer.parseInt(x[2]);
             Item item;
             if (nome.equals("LIVRO")) {
-                item = new ItemLivro(k, preco, qtd);
+                item = new ItemLivro(preco, qtd);
             } else if (nome.equals("ELETRONICO")) {
-                item = new ItemEletronico(k, preco, qtd);
-            } else if (nome.equals("OUTRO")) {
-                item = new Item(k, preco, qtd);
+                item = new ItemEletronico(preco, qtd);
+            } else {
+                item = new Item(preco, qtd);
             }
             //categorias
             pedido.addItem(
@@ -179,7 +207,8 @@ public class Sistema {
             );
         }
 
-        pedido.x();
+        ResultadoPedido resultado = pedido.calcularResultado();
+        resultado.imprimirResultado();
 
         sc.close();
     }
