@@ -1,0 +1,6 @@
+- [x] Um empréstimo atrasado não pode ser renovado.
+- [x] Um material que possui reserva de outro usuário não pode ser renovado.
+- [x] Materiais do tipo MIDIA não podem ser renovados.
+- [x] REVISTA pode ser renovada no máximo uma vez, independentemente do perfil.
+- [x] Um LIVRO emprestado por ALUNO pode ser renovado no máximo duas vezes.
+- [x] Um LIVRO emprestado por PROFESSOR pode ser renovado no máximo três vezes.
